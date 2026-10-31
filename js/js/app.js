@@ -9,7 +9,7 @@ import { initExportImportModule } from './export-import.js';
 import { getAllStudents, getAllAttendance, getSetting, setSetting } from './database.js';
 import { showToast, formatDate, formatTime } from './utils.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function startSystem() {
   initClock();
   initNavigation();
   initSettingsControls();
@@ -19,14 +19,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     await loadFaceModels((msg) => {
-      statusText.textContent = msg;
+      if (statusText) statusText.textContent = msg;
     });
-    indicator.classList.remove('error');
-    indicator.classList.add('ready');
-    statusText.textContent = 'Models Online (WASM/WebGL)';
+    if (indicator) {
+      indicator.classList.remove('error');
+      indicator.classList.add('ready');
+    }
+    if (statusText) statusText.textContent = 'Models Online (WASM/WebGL)';
   } catch (err) {
-    indicator.classList.add('error');
-    statusText.textContent = 'Model Load Failed';
+    if (indicator) indicator.classList.add('error');
+    if (statusText) statusText.textContent = 'Model Load Failed';
     showToast('Failed to load neural models: ' + err.message, 'error');
   }
 
@@ -41,10 +43,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   initExportImportModule(refreshAll);
 
   await renderDashboardMetrics();
-});
+}
+
+// Mobile browsers par DOMContentLoaded miss hone se bachane ke liye safe launcher:
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startSystem);
+} else {
+  startSystem();
+}
 
 function initClock() {
   const clockEl = document.getElementById('live-clock');
+  if (!clockEl) return;
   const update = () => {
     const now = new Date();
     clockEl.textContent = `${now.toLocaleTimeString()} | ${now.toLocaleDateString()}`;
@@ -69,13 +79,15 @@ function initNavigation() {
       const targetPanel = document.getElementById(`tab-${tabId}`);
       if (targetPanel) targetPanel.classList.add('active');
 
-      sidebar.classList.remove('mobile-open');
+      if (sidebar) sidebar.classList.remove('mobile-open');
     });
   });
 
-  mobileToggle.addEventListener('click', () => {
-    sidebar.classList.toggle('mobile-open');
-  });
+  if (mobileToggle && sidebar) {
+    mobileToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('mobile-open');
+    });
+  }
 }
 
 async function renderDashboardMetrics() {
@@ -98,10 +110,15 @@ async function renderDashboardMetrics() {
   const absentCount = Math.max(0, totalStu - presentCount);
   const rate = totalStu > 0 ? Math.round((presentCount / totalStu) * 100) : 0;
 
-  document.getElementById('dash-total-students').textContent = totalStu;
-  document.getElementById('dash-today-present').textContent = presentCount;
-  document.getElementById('dash-today-absent').textContent = absentCount;
-  document.getElementById('dash-attendance-rate').textContent = `${rate}%`;
+  const elTotal = document.getElementById('dash-total-students');
+  const elPresent = document.getElementById('dash-today-present');
+  const elAbsent = document.getElementById('dash-today-absent');
+  const elRate = document.getElementById('dash-attendance-rate');
+
+  if (elTotal) elTotal.textContent = totalStu;
+  if (elPresent) elPresent.textContent = presentCount;
+  if (elAbsent) elAbsent.textContent = absentCount;
+  if (elRate) elRate.textContent = `${rate}%`;
 
   renderWeeklyChart(attendance);
   renderRecentFeed(todayRecords);
@@ -179,24 +196,27 @@ async function initSettingsControls() {
   const chkLiveness = document.getElementById('setting-enable-liveness');
   const btnSave = document.getElementById('btn-save-settings');
 
+  if (!thresholdRange) return;
+
   const currentThreshold = await getSetting('matchThreshold', 0.50);
   const currentMultiple = await getSetting('allowMultipleEntries', false);
   const currentLiveness = await getSetting('enableLiveness', false);
 
   thresholdRange.value = currentThreshold;
-  thresholdVal.textContent = parseFloat(currentThreshold).toFixed(2);
-  chkMultiple.checked = !!currentMultiple;
-  chkLiveness.checked = !!currentLiveness;
+  if (thresholdVal) thresholdVal.textContent = parseFloat(currentThreshold).toFixed(2);
+  if (chkMultiple) chkMultiple.checked = !!currentMultiple;
+  if (chkLiveness) chkLiveness.checked = !!currentLiveness;
 
   thresholdRange.addEventListener('input', (e) => {
-    thresholdVal.textContent = parseFloat(e.target.value).toFixed(2);
+    if (thresholdVal) thresholdVal.textContent = parseFloat(e.target.value).toFixed(2);
   });
 
-  btnSave.addEventListener('click', async () => {
-    await setSetting('matchThreshold', parseFloat(thresholdRange.value));
-    await setSetting('allowMultipleEntries', chkMultiple.checked);
-    await setSetting('enableLiveness', chkLiveness.checked);
-
-    showToast('Biometric settings saved.', 'success');
-  });
+  if (btnSave) {
+    btnSave.addEventListener('click', async () => {
+      await setSetting('matchThreshold', parseFloat(thresholdRange.value));
+      await setSetting('allowMultipleEntries', chkMultiple ? chkMultiple.checked : false);
+      await setSetting('enableLiveness', chkLiveness ? chkLiveness.checked : false);
+      showToast('Biometric settings saved.', 'success');
+    });
+  }
 }
