@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>VeriFace | Static Face Attendance System</title>
+  <meta name="description" content="Client-side static biometric face recognition attendance system powered by face-api.js and IndexedDB for GitHub Pages.">
+  <link rel="stylesheet" href="css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6 0h4a2 2 0 0 0 2-2v-4m0-6V5a2 2 0 0 0-2-2h-4"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h2>VeriFace</h2>
+          <span>Static Biometrics</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Dashboard
+        </button>
+        <button class="nav-item" data-tab="recognition">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          Live Recognition
+        </button>
+        <button class="nav-item" data-tab="students">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Student Registry
+        </button>
+        <button class="nav-item" data-tab="attendance">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Attendance Logs
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          System Settings
+        </button>
+      </nav>
+
+      <div class="sidebar-status">
+        <div class="status-indicator" id="model-status-indicator"></div>
+        <span id="model-status-text">Models Loading...</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="system-time" id="live-clock">--:--:-- -- | --/--/----</div>
+        <div class="badge-env">Client-Side Architecture (GitHub Pages Ready)</div>
+      </header>
+
+      <div id="toast-container" class="toast-container"></div>
+
+      <section id="tab-dashboard" class="tab-panel active">
+        <div class="page-header">
+          <h1>Biometric Dashboard</h1>
+          <p class="subtitle">Real-time attendance overview derived directly from local IndexedDB data.</p>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div class="metric-title">Registered Students</div>
+            <div class="metric-value" id="dash-total-students">0</div>
+            <div class="metric-desc">Total enrollment in IndexedDB</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Today's Present</div>
+            <div class="metric-value" id="dash-today-present">0</div>
+            <div class="metric-desc">Verified unique checks today</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Today's Absent (Est.)</div>
+            <div class="metric-value" id="dash-today-absent">0</div>
+            <div class="metric-desc">Unlogged enrolled students</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Today's Rate</div>
+            <div class="metric-value" id="dash-attendance-rate">0%</div>
+            <div class="metric-desc">Present / Total enrollment</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card chart-card">
+            <h3>Weekly Attendance Activity (Past 7 Days)</h3>
+            <div class="bar-chart-container" id="dash-weekly-chart"></div>
+          </div>
+          <div class="card feed-card">
+            <h3>Recent Verification Feed</h3>
+            <div class="recent-feed-list" id="dash-recent-feed">
+              <p class="placeholder-text">No activity recorded today.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-recognition" class="tab-panel">
+        <div class="page-header">
+          <h1>Live Face Recognition Attendance</h1>
+          <p class="subtitle">Position your face within the camera viewport. Biometric verification runs entirely on your device.</p>
+        </div>
+
+        <div class="recognition-layout">
+          <div class="camera-stage card">
+            <div class="camera-viewport-wrapper" id="viewport-wrapper">
+              <video id="recognition-video" playsinline muted autoplay></video>
+              <canvas id="recognition-overlay"></canvas>
+              <div class="camera-placeholder" id="camera-placeholder">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <p>Camera is currently offline</p>
+                <button class="btn btn-primary" id="btn-start-recognition">Start Camera Scanner</button>
+              </div>
+            </div>
+
+            <div class="camera-controls">
+              <div class="control-group">
+                <label for="camera-select">Device Camera:</label>
+                <select id="camera-select" class="form-select"></select>
+              </div>
+              <div class="btn-group">
+                <button class="btn btn-danger" id="btn-stop-recognition" disabled>Stop Camera</button>
+              </div>
+            </div>
+
+            <div class="live-status-bar" id="recognition-status-bar">
+              Status: Ready. Models loaded.
+            </div>
+          </div>
+
+          <div class="recognition-sidebar">
+            <div class="card status-panel">
+              <h3>Real-Time Biometric Feedback</h3>
+              <div class="status-box" id="match-feedback-box">
+                <div class="feedback-title">Awaiting Face Input...</div>
+                <div class="feedback-detail">Point device towards student face</div>
+              </div>
+
+              <div class="liveness-box" id="liveness-box" style="display:none;">
+                <h4>Heuristic Liveness Challenge</h4>
+                <p id="liveness-instruction">Turn face slightly left or blink</p>
+                <div class="progress-bar-bg"><div class="progress-bar-fill" id="liveness-progress"></div></div>
+              </div>
+
+              <div class="notice-callout">
+                <strong>Biometric Matching Limitations:</strong>
+                <p>Matches are Euclidean distance calculations against 128-d embeddings. Good ambient lighting and straight face angle are required for optimal accuracy.</p>
+              </div>
+            </div>
+
+            <div class="card manual-override-panel">
+              <h3>Manual Override Entry</h3>
+              <p class="subtitle-sm">For lighting issues or unreadable biometrics.</p>
+              <form id="form-manual-attendance">
+                <div class="form-group">
+                  <label for="manual-student-select">Student:</label>
+                  <select id="manual-student-select" class="form-select" required>
+                    <option value="">Select registered student</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="manual-reason">Verification Override Reason:</label>
+                  <input type="text" id="manual-reason" class="form-input" placeholder="e.g. Lens glare, Face injury" required>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-block">Log Manual Attendance</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-students" class="tab-panel">
+        <div class="page-header flex-header">
+          <div>
+            <h1>Student Enrollment Registry</h1>
+            <p class="subtitle">Enroll students with 128-D facial vector descriptors stored locally.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-open-student-modal">+ Enroll New Student</button>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-actions">
+            <input type="text" id="student-search" class="form-input search-input" placeholder="Search by name, roll no, class...">
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="students-table">
+              <thead>
+                <tr>
+                  <th>Roll / ID</th>
+                  <th>Full Name</th>
+                  <th>Class / Section</th>
+                  <th>Email</th>
+                  <th>Biometric Status</th>
+                  <th>Registered Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="students-table-body">
+                <tr><td colspan="7" class="text-center">Loading student database...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-attendance" class="tab-panel">
+        <div class="page-header flex-header">
+          <div>
+            <h1>Attendance History & Auditing</h1>
+            <p class="subtitle">Audit verification entries, filter by criteria, or export official CSV reports.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-export-csv">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Filtered to CSV
+          </button>
+        </div>
+
+        <div class="card filter-card">
+          <div class="filter-grid">
+            <div class="form-group">
+              <label for="filter-date">Date:</label>
+              <input type="date" id="filter-date" class="form-input">
+            </div>
+            <div class="form-group">
+              <label for="filter-class">Class/Section:</label>
+              <input type="text" id="filter-class" class="form-input" placeholder="All classes">
+            </div>
+            <div class="form-group">
+              <label for="filter-method">Verification Method:</label>
+              <select id="filter-method" class="form-select">
+                <option value="">All Methods</option>
+                <option value="Face Recognition">Face Recognition</option>
+                <option value="Manual Override">Manual Override</option>
+              </select>
+            </div>
+            <div class="form-group filter-btn-group">
+              <button class="btn btn-secondary" id="btn-reset-filters">Reset Filters</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="attendance-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Roll / ID</th>
+                  <th>Full Name</th>
+                  <th>Class</th>
+                  <th>Status</th>
+                  <th>Method</th>
+                  <th>Distance/Confidence</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="attendance-table-body">
+                <tr><td colspan="8" class="text-center">No attendance logs found.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-settings" class="tab-panel">
+        <div class="page-header">
+          <h1>Settings & Biometric Governance</h1>
+          <p class="subtitle">Configure recognition thresholds, perform full database exports, or restore state.</p>
+        </div>
+
+        <div class="settings-grid">
+          <div class="card">
+            <h3>Recognition Parameters</h3>
+            <div class="form-group">
+              <label for="setting-threshold">Euclidean Distance Match Threshold: <strong id="val-threshold">0.50</strong></label>
+              <input type="range" id="setting-threshold" min="0.30" max="0.70" step="0.01" value="0.50" class="form-range">
+              <small class="form-help">Lower values require closer biometric similarity. Recommended: 0.45 - 0.52.</small>
+            </div>
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" id="setting-allow-duplicates">
+                Allow multiple entries per student per day
+              </label>
+            </div>
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" id="setting-enable-liveness">
+                Enable experimental head-movement prompt (basic heuristic)
+              </label>
+            </div>
+            <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+          </div>
+
+          <div class="card">
+            <h3>Database Backup & Recovery</h3>
+            <p class="subtitle-sm">Save full state as JSON.</p>
+            <div class="notice-callout warning-callout">
+              <strong>Biometric Privacy Notice:</strong>
+              JSON backups contain raw facial vector descriptors. Keep backups secure.
+            </div>
+            <div class="backup-actions">
+              <button class="btn btn-secondary btn-block" id="btn-export-backup">Download Full JSON Backup</button>
+              <div class="file-upload-wrapper">
+                <input type="file" id="import-backup-file" accept=".json" class="file-input">
+                <button class="btn btn-outline btn-block" id="btn-trigger-import">Restore From JSON Backup</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card danger-zone-card">
+            <h3>Destructive Zone</h3>
+            <p class="subtitle-sm">Irreversibly delete all local student registries and attendance history.</p>
+            <button class="btn btn-danger" id="btn-purge-database">Purge Local Database</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modal-enrollment" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-enroll-title">Enroll New Student</h2>
+        <button class="modal-close" id="btn-close-enroll-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-enroll-student">
+          <input type="hidden" id="enroll-edit-mode" value="false">
+          <div class="form-group">
+            <label for="enroll-name">Full Name *</label>
+            <input type="text" id="enroll-name" class="form-input" placeholder="e.g. Eleanor Vance" required>
+          </div>
+          <div class="form-group">
+            <label for="enroll-id">Roll Number / Student ID *</label>
+            <input type="text" id="enroll-id" class="form-input" placeholder="e.g. STU-2026-0042" required>
+          </div>
+          <div class="form-group">
+            <label for="enroll-class">Class / Section *</label>
+            <input type="text" id="enroll-class" class="form-input" placeholder="e.g. Grade 11-B" required>
+          </div>
+          <div class="form-group">
+            <label for="enroll-email">Email (Optional)</label>
+            <input type="email" id="enroll-email" class="form-input" placeholder="eleanor@institution.edu">
+          </div>
+          <div class="form-group">
+            <label for="enroll-phone">Phone (Optional)</label>
+            <input type="tel" id="enroll-phone" class="form-input" placeholder="+1-555-0192">
+          </div>
+
+          <div class="enroll-camera-area">
+            <label>Facial Descriptor Capture *</label>
+            <div class="capture-viewport-container">
+              <video id="enroll-video" playsinline muted autoplay></video>
+              <canvas id="enroll-canvas" style="display:none;"></canvas>
+              <div class="enroll-capture-overlay" id="enroll-capture-overlay">
+                <span id="enroll-overlay-text">Camera Standby</span>
+              </div>
+            </div>
+            <div class="capture-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-start-enroll-cam">Start Camera</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-capture-face" disabled>Capture Biometrics</button>
+            </div>
+            <div class="biometric-indicator" id="enroll-biometric-status">
+              No biometric template captured yet.
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="btn-cancel-enrollment">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-enrollment">Save Student</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/utils.js"></script>
+  <script type="module" src="js/database.js"></script>
+  <script type="module" src="js/face-recognition.js"></script>
+  <script type="module" src="js/students.js"></script>
+  <script type="module" src="js/attendance.js"></script>
+  <script type="module" src="js/export-import.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
