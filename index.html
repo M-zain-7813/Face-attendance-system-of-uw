@@ -5,12 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>VeriFace | Static Face Attendance System</title>
-  <meta name="description" content="Client-side static biometric face recognition attendance system powered by face-api.js and IndexedDB for GitHub Pages.">
   <link rel="stylesheet" href="css/style.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <!-- Face API Script -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <style>
+    /* Mobile sidebar slide fix */
+    @media (max-width: 900px) {
+      .sidebar.mobile-open {
+        left: 0 !important;
+        z-index: 9999 !important;
+        box-shadow: 10px 0 25px rgba(0,0,0,0.8);
+      }
+      .modal-backdrop.open {
+        display: flex !important;
+        z-index: 10000 !important;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="app-layout">
+    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="brand-icon">
@@ -54,6 +69,7 @@
       </div>
     </aside>
 
+    <!-- Main -->
     <main class="main-content">
       <header class="topbar">
         <button class="mobile-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
@@ -65,6 +81,7 @@
 
       <div id="toast-container" class="toast-container"></div>
 
+      <!-- Dashboard -->
       <section id="tab-dashboard" class="tab-panel active">
         <div class="page-header">
           <h1>Biometric Dashboard</h1>
@@ -108,10 +125,11 @@
         </div>
       </section>
 
+      <!-- Live Recognition -->
       <section id="tab-recognition" class="tab-panel">
         <div class="page-header">
           <h1>Live Face Recognition Attendance</h1>
-          <p class="subtitle">Position your face within the camera viewport. Biometric verification runs entirely on your device.</p>
+          <p class="subtitle">Position your face within the camera viewport. Biometric verification runs on-device.</p>
         </div>
 
         <div class="recognition-layout">
@@ -152,21 +170,14 @@
                 <div class="feedback-detail">Point device towards student face</div>
               </div>
 
-              <div class="liveness-box" id="liveness-box" style="display:none;">
-                <h4>Heuristic Liveness Challenge</h4>
-                <p id="liveness-instruction">Turn face slightly left or blink</p>
-                <div class="progress-bar-bg"><div class="progress-bar-fill" id="liveness-progress"></div></div>
-              </div>
-
               <div class="notice-callout">
-                <strong>Biometric Matching Limitations:</strong>
-                <p>Matches are Euclidean distance calculations against 128-d embeddings. Good ambient lighting and straight face angle are required for optimal accuracy.</p>
+                <strong>Biometric Matching:</strong>
+                <p>Ensure good lighting and direct eye contact with the camera.</p>
               </div>
             </div>
 
             <div class="card manual-override-panel">
               <h3>Manual Override Entry</h3>
-              <p class="subtitle-sm">For lighting issues or unreadable biometrics.</p>
               <form id="form-manual-attendance">
                 <div class="form-group">
                   <label for="manual-student-select">Student:</label>
@@ -175,8 +186,8 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="manual-reason">Verification Override Reason:</label>
-                  <input type="text" id="manual-reason" class="form-input" placeholder="e.g. Lens glare, Face injury" required>
+                  <label for="manual-reason">Reason:</label>
+                  <input type="text" id="manual-reason" class="form-input" placeholder="e.g. Lighting, Camera error" required>
                 </div>
                 <button type="submit" class="btn btn-secondary btn-block">Log Manual Attendance</button>
               </form>
@@ -185,6 +196,7 @@
         </div>
       </section>
 
+      <!-- Students -->
       <section id="tab-students" class="tab-panel">
         <div class="page-header flex-header">
           <div>
@@ -219,6 +231,7 @@
         </div>
       </section>
 
+      <!-- Attendance -->
       <section id="tab-attendance" class="tab-panel">
         <div class="page-header flex-header">
           <div>
@@ -241,14 +254,6 @@
               <label for="filter-class">Class/Section:</label>
               <input type="text" id="filter-class" class="form-input" placeholder="All classes">
             </div>
-            <div class="form-group">
-              <label for="filter-method">Verification Method:</label>
-              <select id="filter-method" class="form-select">
-                <option value="">All Methods</option>
-                <option value="Face Recognition">Face Recognition</option>
-                <option value="Manual Override">Manual Override</option>
-              </select>
-            </div>
             <div class="form-group filter-btn-group">
               <button class="btn btn-secondary" id="btn-reset-filters">Reset Filters</button>
             </div>
@@ -266,7 +271,7 @@
                   <th>Class</th>
                   <th>Status</th>
                   <th>Method</th>
-                  <th>Distance/Confidence</th>
+                  <th>Score</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -278,6 +283,7 @@
         </div>
       </section>
 
+      <!-- Settings -->
       <section id="tab-settings" class="tab-panel">
         <div class="page-header">
           <h1>Settings & Biometric Governance</h1>
@@ -288,20 +294,14 @@
           <div class="card">
             <h3>Recognition Parameters</h3>
             <div class="form-group">
-              <label for="setting-threshold">Euclidean Distance Match Threshold: <strong id="val-threshold">0.50</strong></label>
+              <label for="setting-threshold">Distance Match Threshold: <strong id="val-threshold">0.50</strong></label>
               <input type="range" id="setting-threshold" min="0.30" max="0.70" step="0.01" value="0.50" class="form-range">
-              <small class="form-help">Lower values require closer biometric similarity. Recommended: 0.45 - 0.52.</small>
+              <small class="form-help">Lower = stricter match. Recommended: 0.45 - 0.52.</small>
             </div>
             <div class="form-group checkbox-group">
               <label>
                 <input type="checkbox" id="setting-allow-duplicates">
                 Allow multiple entries per student per day
-              </label>
-            </div>
-            <div class="form-group checkbox-group">
-              <label>
-                <input type="checkbox" id="setting-enable-liveness">
-                Enable experimental head-movement prompt (basic heuristic)
               </label>
             </div>
             <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
@@ -310,22 +310,14 @@
           <div class="card">
             <h3>Database Backup & Recovery</h3>
             <p class="subtitle-sm">Save full state as JSON.</p>
-            <div class="notice-callout warning-callout">
-              <strong>Biometric Privacy Notice:</strong>
-              JSON backups contain raw facial vector descriptors. Keep backups secure.
-            </div>
             <div class="backup-actions">
               <button class="btn btn-secondary btn-block" id="btn-export-backup">Download Full JSON Backup</button>
-              <div class="file-upload-wrapper">
-                <input type="file" id="import-backup-file" accept=".json" class="file-input">
-                <button class="btn btn-outline btn-block" id="btn-trigger-import">Restore From JSON Backup</button>
-              </div>
             </div>
           </div>
 
           <div class="card danger-zone-card">
             <h3>Destructive Zone</h3>
-            <p class="subtitle-sm">Irreversibly delete all local student registries and attendance history.</p>
+            <p class="subtitle-sm">Delete all student registries and logs.</p>
             <button class="btn btn-danger" id="btn-purge-database">Purge Local Database</button>
           </div>
         </div>
@@ -333,41 +325,36 @@
     </main>
   </div>
 
+  <!-- Student Enrollment Modal -->
   <div class="modal-backdrop" id="modal-enrollment" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h2 id="modal-enroll-title">Enroll New Student</h2>
+        <h2>Enroll New Student</h2>
         <button class="modal-close" id="btn-close-enroll-modal">&times;</button>
       </div>
       <div class="modal-body">
         <form id="form-enroll-student">
-          <input type="hidden" id="enroll-edit-mode" value="false">
           <div class="form-group">
             <label for="enroll-name">Full Name *</label>
-            <input type="text" id="enroll-name" class="form-input" placeholder="e.g. Eleanor Vance" required>
+            <input type="text" id="enroll-name" class="form-input" placeholder="e.g. Zain Ali" required>
           </div>
           <div class="form-group">
             <label for="enroll-id">Roll Number / Student ID *</label>
-            <input type="text" id="enroll-id" class="form-input" placeholder="e.g. STU-2026-0042" required>
+            <input type="text" id="enroll-id" class="form-input" placeholder="e.g. STU-101" required>
           </div>
           <div class="form-group">
             <label for="enroll-class">Class / Section *</label>
-            <input type="text" id="enroll-class" class="form-input" placeholder="e.g. Grade 11-B" required>
+            <input type="text" id="enroll-class" class="form-input" placeholder="e.g. BSCS-4A" required>
           </div>
           <div class="form-group">
             <label for="enroll-email">Email (Optional)</label>
-            <input type="email" id="enroll-email" class="form-input" placeholder="eleanor@institution.edu">
-          </div>
-          <div class="form-group">
-            <label for="enroll-phone">Phone (Optional)</label>
-            <input type="tel" id="enroll-phone" class="form-input" placeholder="+1-555-0192">
+            <input type="email" id="enroll-email" class="form-input" placeholder="student@uw.edu">
           </div>
 
           <div class="enroll-camera-area">
-            <label>Facial Descriptor Capture *</label>
+            <label>Facial Biometric Capture *</label>
             <div class="capture-viewport-container">
               <video id="enroll-video" playsinline muted autoplay></video>
-              <canvas id="enroll-canvas" style="display:none;"></canvas>
               <div class="enroll-capture-overlay" id="enroll-capture-overlay">
                 <span id="enroll-overlay-text">Camera Standby</span>
               </div>
@@ -390,12 +377,669 @@
     </div>
   </div>
 
-  <script type="module" src="js/utils.js"></script>
-  <script type="module" src="js/database.js"></script>
-  <script type="module" src="js/face-recognition.js"></script>
-  <script type="module" src="js/students.js"></script>
-  <script type="module" src="js/attendance.js"></script>
-  <script type="module" src="js/export-import.js"></script>
-  <script type="module" src="js/app.js"></script>
+  <!-- SINGLE ROBUST APP ENGINE SCRIPT -->
+  <script>
+    // ==========================================
+    // 1. DATABASE & PERSISTENCE (IndexedDB)
+    // ==========================================
+    const DB_NAME = 'FaceAttendanceDB';
+    const DB_VERSION = 1;
+    let dbInstance = null;
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        if (dbInstance) return resolve(dbInstance);
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('students')) {
+            db.createObjectStore('students', { keyPath: 'studentId' });
+          }
+          if (!db.objectStoreNames.contains('attendance')) {
+            const att = db.createObjectStore('attendance', { keyPath: 'id', autoIncrement: true });
+            att.createIndex('date', 'date', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('settings')) {
+            db.createObjectStore('settings', { keyPath: 'key' });
+          }
+        };
+        req.onsuccess = (e) => { dbInstance = e.target.result; resolve(dbInstance); };
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function getAllStudents() {
+      const db = await openDatabase();
+      return new Promise((res, rej) => {
+        const req = db.transaction(['students'], 'readonly').objectStore('students').getAll();
+        req.onsuccess = () => res(req.result || []);
+        req.onerror = (e) => rej(e.target.error);
+      });
+    }
+
+    async function addStudent(student) {
+      const db = await openDatabase();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(['students'], 'readwrite');
+        const store = tx.objectStore('students');
+        const check = store.get(student.studentId);
+        check.onsuccess = () => {
+          if (check.result) rej(new Error('Student ID already exists!'));
+          else {
+            const addReq = store.add(student);
+            addReq.onsuccess = () => res(student);
+            addReq.onerror = (e) => rej(e.target.error);
+          }
+        };
+      });
+    }
+
+    async function deleteStudent(id) {
+      const db = await openDatabase();
+      return new Promise((res, rej) => {
+        const req = db.transaction(['students'], 'readwrite').objectStore('students').delete(id);
+        req.onsuccess = () => res(true);
+        req.onerror = (e) => rej(e.target.error);
+      });
+    }
+
+    async function recordAttendance(rec) {
+      const db = await openDatabase();
+      return new Promise((res, rej) => {
+        const req = db.transaction(['attendance'], 'readwrite').objectStore('attendance').add(rec);
+        req.onsuccess = () => res(req.result);
+        req.onerror = (e) => rej(e.target.error);
+      });
+    }
+
+    async function getAllAttendance() {
+      const db = await openDatabase();
+      return new Promise((res, rej) => {
+        const req = db.transaction(['attendance'], 'readonly').objectStore('attendance').getAll();
+        req.onsuccess = () => res(req.result || []);
+        req.onerror = (e) => rej(e.target.error);
+      });
+    }
+
+    async function hasStudentCheckedInToday(studentId, dateStr) {
+      const all = await getAllAttendance();
+      return all.some(a => a.studentId === studentId && a.date === dateStr);
+    }
+
+    async function setSetting(key, value) {
+      const db = await openDatabase();
+      return new Promise((res, rej) => {
+        const req = db.transaction(['settings'], 'readwrite').objectStore('settings').put({ key, value });
+        req.onsuccess = () => res(true);
+        req.onerror = (e) => rej(e.target.error);
+      });
+    }
+
+    async function getSetting(key, defVal = null) {
+      const db = await openDatabase();
+      return new Promise((res) => {
+        const req = db.transaction(['settings'], 'readonly').objectStore('settings').get(key);
+        req.onsuccess = () => res(req.result !== undefined ? req.result.value : defVal);
+        req.onerror = () => res(defVal);
+      });
+    }
+
+    // ==========================================
+    // 2. UTILITIES & TOASTS
+    // ==========================================
+    function showToast(msg, type = 'info') {
+      const c = document.getElementById('toast-container');
+      if (!c) return;
+      const t = document.createElement('div');
+      t.className = 'toast ' + type;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3500);
+    }
+
+    function formatDate(iso) {
+      return iso ? new Date(iso).toLocaleDateString() : '';
+    }
+
+    function formatTime(iso) {
+      return iso ? new Date(iso).toLocaleTimeString() : '';
+    }
+
+    function escapeHTML(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ==========================================
+    // 3. UI INITIALIZATION (CLOCK, TABS, MENU)
+    // ==========================================
+    const clockEl = document.getElementById('live-clock');
+    function updateClock() {
+      const now = new Date();
+      if (clockEl) clockEl.textContent = now.toLocaleTimeString() + ' | ' + now.toLocaleDateString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Mobile Hamburger Menu
+    const mobileToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    if (mobileToggle && sidebar) {
+      mobileToggle.onclick = function(e) {
+        e.stopPropagation();
+        sidebar.classList.toggle('mobile-open');
+      };
+    }
+
+    // Navigation Tabs
+    const navItems = document.querySelectorAll('.nav-item');
+    const panels = document.querySelectorAll('.tab-panel');
+    navItems.forEach(btn => {
+      btn.onclick = function() {
+        const tabId = btn.getAttribute('data-tab');
+        navItems.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const p = document.getElementById('tab-' + tabId);
+        if (p) p.classList.add('active');
+        if (sidebar) sidebar.classList.remove('mobile-open');
+        refreshDashboard();
+      };
+    });
+
+    // ==========================================
+    // 4. FACE-API MODELS & BIOMETRICS ENGINE
+    // ==========================================
+    const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+    let modelsReady = false;
+    let faceMatcher = null;
+    let enrolledDescriptor = null;
+    let enrollStream = null;
+
+    async function loadModels() {
+      const statusText = document.getElementById('model-status-text');
+      const indicator = document.getElementById('model-status-indicator');
+      try {
+        if (statusText) statusText.textContent = 'Downloading Models...';
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        modelsReady = true;
+        if (indicator) { indicator.className = 'status-indicator ready'; }
+        if (statusText) statusText.textContent = 'Models Online (Ready)';
+        showToast('Face recognition models loaded successfully!', 'success');
+      } catch (err) {
+        console.error(err);
+        if (statusText) statusText.textContent = 'Model Load Failed';
+        if (indicator) { indicator.className = 'status-indicator error'; }
+        showToast('Network error loading face models. Refresh or check connection.', 'error');
+      }
+    }
+
+    function buildMatcher(students, threshold = 0.50) {
+      const labeled = [];
+      students.forEach(s => {
+        if (s.descriptor && s.descriptor.length === 128) {
+          labeled.push(new faceapi.LabeledFaceDescriptors(s.studentId, [new Float32Array(s.descriptor)]));
+        }
+      });
+      if (labeled.length === 0) { faceMatcher = null; return null; }
+      faceMatcher = new faceapi.FaceMatcher(labeled, threshold);
+      return faceMatcher;
+    }
+
+    // ==========================================
+    // 5. STUDENT REGISTRY & ENROLLMENT
+    // ==========================================
+    const modalEnroll = document.getElementById('modal-enrollment');
+    const btnOpenEnroll = document.getElementById('btn-open-student-modal');
+    const btnCloseEnroll = document.getElementById('btn-close-enroll-modal');
+    const btnCancelEnroll = document.getElementById('btn-cancel-enrollment');
+    const formEnroll = document.getElementById('form-enroll-student');
+    const videoEnroll = document.getElementById('enroll-video');
+    const btnStartEnrollCam = document.getElementById('btn-start-enroll-cam');
+    const btnCaptureFace = document.getElementById('btn-capture-face');
+    const biometricStatus = document.getElementById('enroll-biometric-status');
+    const overlayText = document.getElementById('enroll-overlay-text');
+
+    btnOpenEnroll.onclick = () => { modalEnroll.classList.add('open'); };
+    const closeEnrollModal = () => {
+      if (enrollStream) { enrollStream.getTracks().forEach(t => t.stop()); enrollStream = null; }
+      modalEnroll.classList.remove('open');
+      formEnroll.reset();
+      enrolledDescriptor = null;
+      btnCaptureFace.disabled = true;
+      overlayText.style.display = 'flex';
+      biometricStatus.textContent = 'No biometric template captured yet.';
+      biometricStatus.style.color = '';
+    };
+    btnCloseEnroll.onclick = closeEnrollModal;
+    btnCancelEnroll.onclick = closeEnrollModal;
+
+    btnStartEnrollCam.onclick = async () => {
+      try {
+        if (enrollStream) enrollStream.getTracks().forEach(t => t.stop());
+        enrollStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        videoEnroll.srcObject = enrollStream;
+        overlayText.style.display = 'none';
+        btnCaptureFace.disabled = false;
+        showToast('Enrollment camera active.', 'info');
+      } catch (err) {
+        showToast('Camera error: ' + err.message, 'error');
+      }
+    };
+
+    btnCaptureFace.onclick = async () => {
+      if (!modelsReady) { showToast('Models still loading, please wait...', 'warning'); return; }
+      biometricStatus.textContent = 'Extracting facial features...';
+      try {
+        const detection = await faceapi.detectSingleFace(videoEnroll).withFaceLandmarks().withFaceDescriptor();
+        if (!detection) {
+          biometricStatus.textContent = 'No face detected. Face camera directly in good light.';
+          biometricStatus.style.color = '#ef4444';
+          showToast('No face detected!', 'warning');
+          return;
+        }
+        enrolledDescriptor = Array.from(detection.descriptor);
+        biometricStatus.textContent = 'Face Biometrics Captured Successfully (128-D vector)!';
+        biometricStatus.style.color = '#10b981';
+        showToast('Face captured!', 'success');
+      } catch (err) {
+        showToast('Capture error: ' + err.message, 'error');
+      }
+    };
+
+    formEnroll.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!enrolledDescriptor) {
+        showToast('You must capture face biometrics first!', 'error');
+        return;
+      }
+      const newStu = {
+        studentId: document.getElementById('enroll-id').value.trim(),
+        name: document.getElementById('enroll-name').value.trim(),
+        classSection: document.getElementById('enroll-class').value.trim(),
+        email: document.getElementById('enroll-email').value.trim(),
+        descriptor: enrolledDescriptor,
+        createdAt: new Date().toISOString()
+      };
+      try {
+        await addStudent(newStu);
+        showToast(`Student ${newStu.name} enrolled!`, 'success');
+        closeEnrollModal();
+        renderStudents();
+        refreshDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    };
+
+    async function renderStudents(filter = '') {
+      const tbody = document.getElementById('students-table-body');
+      if (!tbody) return;
+      const list = await getAllStudents();
+      const filtered = list.filter(s => !filter || s.name.toLowerCase().includes(filter) || s.studentId.toLowerCase().includes(filter));
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No students registered yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map(s => `
+        <tr>
+          <td><strong>${escapeHTML(s.studentId)}</strong></td>
+          <td>${escapeHTML(s.name)}</td>
+          <td>${escapeHTML(s.classSection)}</td>
+          <td>${escapeHTML(s.email || '-')}</td>
+          <td><span class="badge badge-success">Enrolled</span></td>
+          <td>${formatDate(s.createdAt)}</td>
+          <td><button class="btn btn-outline btn-sm" onclick="removeStudent('${escapeHTML(s.studentId)}')">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    window.removeStudent = async function(id) {
+      if (confirm('Delete student ' + id + '?')) {
+        await deleteStudent(id);
+        showToast('Student deleted.', 'info');
+        renderStudents();
+        refreshDashboard();
+      }
+    };
+
+    document.getElementById('student-search').oninput = (e) => {
+      renderStudents(e.target.value.trim().toLowerCase());
+    };
+
+    // ==========================================
+    // 6. LIVE RECOGNITION SCANNER LOOP
+    // ==========================================
+    const btnStartRec = document.getElementById('btn-start-recognition');
+    const btnStopRec = document.getElementById('btn-stop-recognition');
+    const videoRec = document.getElementById('recognition-video');
+    const canvasRec = document.getElementById('recognition-overlay');
+    const placeholderRec = document.getElementById('camera-placeholder');
+    const feedbackBox = document.getElementById('match-feedback-box');
+    const selectCamera = document.getElementById('camera-select');
+    let recStream = null;
+    let recActive = false;
+    let recAnimId = null;
+    let lastScanTime = 0;
+    const cooldownMap = new Map();
+
+    btnStartRec.onclick = async () => {
+      const students = await getAllStudents();
+      if (students.length === 0) {
+        showToast('Please enroll at least 1 student first!', 'warning');
+        return;
+      }
+      const threshold = parseFloat(await getSetting('matchThreshold', 0.50));
+      buildMatcher(students, threshold);
+
+      try {
+        const devId = selectCamera.value;
+        recStream = await navigator.mediaDevices.getUserMedia({
+          video: devId ? { deviceId: { exact: devId } } : { facingMode: 'user' },
+          audio: false
+        });
+        videoRec.srcObject = recStream;
+        placeholderRec.style.display = 'none';
+        btnStartRec.disabled = true;
+        btnStopRec.disabled = false;
+        recActive = true;
+
+        videoRec.onloadedmetadata = () => {
+          canvasRec.width = videoRec.videoWidth;
+          canvasRec.height = videoRec.videoHeight;
+          runScanner(students);
+        };
+      } catch (err) {
+        showToast('Camera error: ' + err.message, 'error');
+      }
+    };
+
+    btnStopRec.onclick = stopScanner;
+    function stopScanner() {
+      recActive = false;
+      if (recAnimId) cancelAnimationFrame(recAnimId);
+      if (recStream) { recStream.getTracks().forEach(t => t.stop()); recStream = null; }
+      placeholderRec.style.display = 'flex';
+      btnStartRec.disabled = false;
+      btnStopRec.disabled = true;
+      const ctx = canvasRec.getContext('2d');
+      ctx.clearRect(0, 0, canvasRec.width, canvasRec.height);
+      feedbackBox.innerHTML = '<div class="feedback-title">Awaiting Face Input...</div><div class="feedback-detail">Point device towards face</div>';
+    }
+
+    async function runScanner(students) {
+      if (!recActive) return;
+      const now = Date.now();
+      if (now - lastScanTime > 200 && modelsReady) {
+        lastScanTime = now;
+        try {
+          const detections = await faceapi.detectAllFaces(videoRec).withFaceLandmarks().withFaceDescriptors();
+          const ctx = canvasRec.getContext('2d');
+          ctx.clearRect(0, 0, canvasRec.width, canvasRec.height);
+
+          if (detections.length === 1 && faceMatcher) {
+            const det = detections[0];
+            const box = det.detection.box;
+            const match = faceMatcher.findBestMatch(det.descriptor);
+
+            if (match.label !== 'unknown') {
+              const matchedStudent = students.find(s => s.studentId === match.label);
+              if (matchedStudent) {
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                feedbackBox.innerHTML = `
+                  <div class="feedback-title" style="color:#10b981;">${matchedStudent.name}</div>
+                  <div class="feedback-detail">ID: ${matchedStudent.studentId} | Dist: ${match.distance.toFixed(3)}</div>
+                `;
+                verifyAndMarkAttendance(matchedStudent, match.distance);
+              }
+            } else {
+              ctx.strokeStyle = '#ef4444';
+              ctx.lineWidth = 3;
+              ctx.strokeRect(box.x, box.y, box.width, box.height);
+              feedbackBox.innerHTML = '<div class="feedback-title" style="color:#ef4444;">Unregistered Face</div>';
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      if (recActive) recAnimId = requestAnimationFrame(() => runScanner(students));
+    }
+
+    async function verifyAndMarkAttendance(stu, dist) {
+      const today = new Date().toISOString().split('T')[0];
+      const last = cooldownMap.get(stu.studentId) || 0;
+      if (Date.now() - last < 12000) return;
+
+      const allowDupes = await getSetting('allowDuplicates', false);
+      if (!allowDupes) {
+        const checked = await hasStudentCheckedInToday(stu.studentId, today);
+        if (checked) {
+          cooldownMap.set(stu.studentId, Date.now());
+          showToast(`${stu.name} already marked present today.`, 'info');
+          return;
+        }
+      }
+
+      await recordAttendance({
+        studentId: stu.studentId,
+        name: stu.name,
+        classSection: stu.classSection,
+        timestamp: new Date().toISOString(),
+        date: today,
+        status: 'Present',
+        method: 'Face Recognition',
+        score: (1 - dist).toFixed(2)
+      });
+
+      cooldownMap.set(stu.studentId, Date.now());
+      showToast(`Verified Present: ${stu.name}!`, 'success');
+      renderAttendance();
+      refreshDashboard();
+    }
+
+    // Manual override
+    document.getElementById('form-manual-attendance').onsubmit = async (e) => {
+      e.preventDefault();
+      const stuId = document.getElementById('manual-student-select').value;
+      const reason = document.getElementById('manual-reason').value;
+      const list = await getAllStudents();
+      const s = list.find(x => x.studentId === stuId);
+      if (!s) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      await recordAttendance({
+        studentId: s.studentId,
+        name: s.name,
+        classSection: s.classSection,
+        timestamp: new Date().toISOString(),
+        date: today,
+        status: 'Present',
+        method: 'Manual Override (' + reason + ')',
+        score: 'Manual'
+      });
+      showToast(`Attendance marked manually for ${s.name}`, 'success');
+      document.getElementById('form-manual-attendance').reset();
+      renderAttendance();
+      refreshDashboard();
+    };
+
+    // ==========================================
+    // 7. ATTENDANCE TABLE & CSV EXPORT
+    // ==========================================
+    async function renderAttendance() {
+      const tbody = document.getElementById('attendance-table-body');
+      if (!tbody) return;
+      const filterDate = document.getElementById('filter-date').value;
+      const filterClass = document.getElementById('filter-class').value.trim().toLowerCase();
+
+      let list = await getAllAttendance();
+      list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      const filtered = list.filter(r => {
+        if (filterDate && r.date !== filterDate) return false;
+        if (filterClass && !r.classSection.toLowerCase().includes(filterClass)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No attendance logs found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td>${formatDate(r.timestamp)} ${formatTime(r.timestamp)}</td>
+          <td><strong>${escapeHTML(r.studentId)}</strong></td>
+          <td>${escapeHTML(r.name)}</td>
+          <td>${escapeHTML(r.classSection)}</td>
+          <td><span class="badge badge-success">${escapeHTML(r.status)}</span></td>
+          <td>${escapeHTML(r.method)}</td>
+          <td>${escapeHTML(r.score)}</td>
+          <td><button class="btn btn-outline btn-sm" onclick="removeAtt(${r.id})">Delete</button></td>
+        </tr>
+      `).join('');
+    }
+
+    window.removeAtt = async function(id) {
+      if (confirm('Delete log entry?')) {
+        const db = await openDatabase();
+        db.transaction(['attendance'], 'readwrite').objectStore('attendance').delete(id);
+        showToast('Record deleted.', 'info');
+        renderAttendance();
+        refreshDashboard();
+      }
+    };
+
+    document.getElementById('filter-date').onchange = renderAttendance;
+    document.getElementById('filter-class').oninput = renderAttendance;
+    document.getElementById('btn-reset-filters').onclick = () => {
+      document.getElementById('filter-date').value = '';
+      document.getElementById('filter-class').value = '';
+      renderAttendance();
+    };
+
+    // CSV Download
+    document.getElementById('btn-export-csv').onclick = async () => {
+      const list = await getAllAttendance();
+      if (list.length === 0) { showToast('No logs to export.', 'warning'); return; }
+      const headers = ['Record_ID,Timestamp,Student_ID,Name,Class,Status,Method,Score'];
+      const rows = list.map(r => `"${r.id}","${r.timestamp}","${r.studentId}","${r.name}","${r.classSection}","${r.status}","${r.method}","${r.score}"`);
+      const blob = new Blob([[headers, ...rows].join('\r\n')], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Attendance_Export.csv';
+      a.click();
+      showToast('CSV downloaded!', 'success');
+    };
+
+    // ==========================================
+    // 8. DASHBOARD METRICS & RECENT FEED
+    // ==========================================
+    async function refreshDashboard() {
+      const students = await getAllStudents();
+      const attendance = await getAllAttendance();
+      const today = new Date().toISOString().split('T')[0];
+
+      // Update student dropdown in manual attendance
+      const manSelect = document.getElementById('manual-student-select');
+      if (manSelect) {
+        manSelect.innerHTML = '<option value="">Select registered student</option>' +
+          students.map(s => `<option value="${s.studentId}">${s.name} (${s.studentId})</option>`).join('');
+      }
+
+      const todayPresents = new Set();
+      const todayLogs = [];
+      attendance.forEach(a => {
+        if (a.date === today) {
+          todayPresents.add(a.studentId);
+          todayLogs.push(a);
+        }
+      });
+
+      const total = students.length;
+      const pres = todayPresents.size;
+      const abs = Math.max(0, total - pres);
+      const rate = total > 0 ? Math.round((pres / total) * 100) : 0;
+
+      document.getElementById('dash-total-students').textContent = total;
+      document.getElementById('dash-today-present').textContent = pres;
+      document.getElementById('dash-today-absent').textContent = abs;
+      document.getElementById('dash-attendance-rate').textContent = rate + '%';
+
+      // Recent feed
+      todayLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const feed = document.getElementById('dash-recent-feed');
+      if (feed) {
+        if (todayLogs.length === 0) feed.innerHTML = '<p class="placeholder-text">No activity recorded today.</p>';
+        else {
+          feed.innerHTML = todayLogs.slice(0, 5).map(r => `
+            <div class="feed-item">
+              <div><strong>${escapeHTML(r.name)}</strong><br><small style="color:var(--text-muted);">${r.studentId}</small></div>
+              <div class="feed-item-time">${formatTime(r.timestamp)}</div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    // ==========================================
+    // 9. SETTINGS & JSON BACKUP
+    // ==========================================
+    const rangeThreshold = document.getElementById('setting-threshold');
+    const valThreshold = document.getElementById('val-threshold');
+    rangeThreshold.oninput = () => { valThreshold.textContent = rangeThreshold.value; };
+
+    document.getElementById('btn-save-settings').onclick = async () => {
+      await setSetting('matchThreshold', parseFloat(rangeThreshold.value));
+      await setSetting('allowDuplicates', document.getElementById('setting-allow-duplicates').checked);
+      showToast('Settings saved!', 'success');
+    };
+
+    document.getElementById('btn-export-backup').onclick = async () => {
+      const data = {
+        students: await getAllStudents(),
+        attendance: await getAllAttendance()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Biometric_Backup.json';
+      a.click();
+      showToast('JSON Backup downloaded!', 'success');
+    };
+
+    document.getElementById('btn-purge-database').onclick = async () => {
+      if (prompt('Type "DELETE" to wipe all data:') === 'DELETE') {
+        const db = await openDatabase();
+        db.transaction(['students', 'attendance'], 'readwrite').objectStore('students').clear();
+        db.transaction(['attendance'], 'readwrite').objectStore('attendance').clear();
+        showToast('Database wiped!', 'info');
+        renderStudents();
+        renderAttendance();
+        refreshDashboard();
+      }
+    };
+
+    // Camera list detection
+    try {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        const v = devices.filter(d => d.kind === 'videoinput');
+        selectCamera.innerHTML = v.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Camera ' + (i+1)}</option>`).join('');
+      });
+    } catch (e) {}
+
+    // ==========================================
+    // 10. SYSTEM BOOTSTRAP
+    // ==========================================
+    renderStudents();
+    renderAttendance();
+    refreshDashboard();
+    loadModels();
+  </script>
 </body>
 </html>
